@@ -2,19 +2,20 @@ name: CI Pipeline
 
 on:
   push:
-    tags:
-      - "v*.*.*"   # 🔥 sadece version tag gelince çalışır
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 📥 repo kodunu çeker
+      # 📥 kodu al
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 🔥 tüm tag'leri görmek için gerekli
 
-      # ☕ Java ortamı kurar
+      # ☕ Java kur
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -25,9 +26,30 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # 🏗️ build alır
+      # 🏗️ build
       - name: Build with Gradle
         run: bash gradlew clean build -x test
+
+      # 🔢 VERSION HESAPLA (EN ÖNEMLİ KISIM)
+      - name: Calculate next version
+        id: version
+        run: |
+          # son v1.0.x tag'ini bul
+          LAST_TAG=$(git tag --list "v1.0.*" --sort=-v:refname | head -n 1)
+
+          echo "Last tag: $LAST_TAG"
+
+          if [ -z "$LAST_TAG" ]; then
+            NEW_VERSION="v1.0.0"
+          else
+            # v1.0.3 → 3 al
+            PATCH=$(echo $LAST_TAG | cut -d'.' -f3)
+            PATCH=$((PATCH + 1))
+
+            NEW_VERSION="v1.0.$PATCH"
+          fi
+
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       # 🔐 Docker login
       - name: Login to Docker Hub
@@ -36,18 +58,23 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 🐳 Docker build (SADECE VERSION TAG)
+      # 🐳 Docker build
       - name: Build Docker image
         run: |
-          VERSION=${GITHUB_REF_NAME}
-
           docker build -t ${{ secrets.DOCKER_USERNAME }}/ci-cd-start:latest .
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ci-cd-start:$VERSION .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/ci-cd-start:${{ env.NEW_VERSION }} .
 
       # 📤 push
       - name: Push Docker image
         run: |
-          VERSION=${GITHUB_REF_NAME}
-
           docker push ${{ secrets.DOCKER_USERNAME }}/ci-cd-start:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/ci-cd-start:$VERSION
+          docker push ${{ secrets.DOCKER_USERNAME }}/ci-cd-start:${{ env.NEW_VERSION }}
+
+      # 🏷️ Git tag oluştur
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git tag ${{ env.NEW_VERSION }}
+          git push origin ${{ env.NEW_VERSION }}
