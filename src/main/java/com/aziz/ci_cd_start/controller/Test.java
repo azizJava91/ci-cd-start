@@ -16,11 +16,11 @@ import java.io.IOException;
 public class Test {
     @GetMapping("/test")
     public String test() {
-        return "Hello world v1 added integration on server ahahhahaaahhahhahahahah yahoooooooooo!!!  oqlannnnnn";
+        return "Hello world added integration on server";
     }
 
 
-    @GetMapping("/oglan")
+    @GetMapping("/photo")
     public ResponseEntity<byte[]> photo(@RequestParam String ad) throws IOException {
 
         ClassPathResource imgFile ;
