@@ -11,6 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class Test {
     @GetMapping("/test")
     public String test(){
-        return "Hello world v1";
+        return "Hello world v1 added integration on server";
     }
 }
