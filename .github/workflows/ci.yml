@@ -79,6 +79,7 @@ jobs:
           git push origin ${{ env.NEW_VERSION }}
 
       # 🚀 Deploy (ONLY THIS SERVICE)
+      # 🚀 Deploy (ONLY THIS SERVICE)
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -86,7 +87,5 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /root/ci-cd-start
-
             docker compose pull ci-cd-start
             docker compose up -d --no-deps ci-cd-start
